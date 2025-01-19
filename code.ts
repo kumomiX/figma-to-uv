@@ -30,30 +30,32 @@ function quit(message?: string) {
   figma.closePlugin(message)
 }
 
-figma.ui.onmessage = async (message = {}) => {
-  if (message.quit && message.text) {
-    return quit('Copied: ' + message.text)
+function getCoordsAgainstParent(node: SceneNode, targetParentId: string) {
+  if (!('relativeTransform' in node)) {
+    return { x: 0, y: 0 }
   }
-}
 
-function getFirstElementWithOffset<T extends SceneNode>(node: T) {
+  let totalX = 0
+  let totalY = 0
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let current: any = node
 
-  while (
-    current &&
-    'x' in current &&
-    'y' in current &&
-    current.x === 0 &&
-    current.y === 0
-  ) {
+  while (current && current.id !== targetParentId) {
+    totalX += current.relativeTransform[0][2]
+    totalY += current.relativeTransform[1][2]
     current = current.parent
   }
 
-  return current
+  return { x: totalX, y: totalY }
 }
 
 function main() {
+  figma.ui.onmessage = async (message = {}) => {
+    if (message.quit && message.text) {
+      return quit('Copied: ' + message.text)
+    }
+  }
+
   const selection = figma.currentPage.selection[0]
   let parent = selection.parent
 
@@ -70,11 +72,11 @@ function main() {
     return quit('Select element with position')
   }
 
-  const element = getFirstElementWithOffset(selection)
+  const { x, y } = getCoordsAgainstParent(selection, parent.id)
 
   const coords = mapToUvCoords({
-    elementX: element.x,
-    elementY: element.y,
+    elementX: x,
+    elementY: y,
     elementWidth: selection.width,
     elementHeight: selection.height,
     parentWidth: parent.width,

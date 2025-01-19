@@ -19,24 +19,27 @@ function mapToUvCoords({ elementX, elementY, elementWidth, elementHeight, parent
 function quit(message) {
     figma.closePlugin(message);
 }
-figma.ui.onmessage = (...args_1) => __awaiter(void 0, [...args_1], void 0, function* (message = {}) {
-    if (message.quit && message.text) {
-        return quit('Copied: ' + message.text);
+function getCoordsAgainstParent(node, targetParentId) {
+    if (!('relativeTransform' in node)) {
+        return { x: 0, y: 0 };
     }
-});
-function getFirstElementWithOffset(node) {
+    let totalX = 0;
+    let totalY = 0;
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let current = node;
-    while (current &&
-        'x' in current &&
-        'y' in current &&
-        current.x === 0 &&
-        current.y === 0) {
+    while (current && current.id !== targetParentId) {
+        totalX += current.relativeTransform[0][2];
+        totalY += current.relativeTransform[1][2];
         current = current.parent;
     }
-    return current;
+    return { x: totalX, y: totalY };
 }
 function main() {
+    figma.ui.onmessage = (...args_1) => __awaiter(this, [...args_1], void 0, function* (message = {}) {
+        if (message.quit && message.text) {
+            return quit('Copied: ' + message.text);
+        }
+    });
     const selection = figma.currentPage.selection[0];
     let parent = selection.parent;
     // Walk up till we hit the root frame
@@ -49,19 +52,10 @@ function main() {
     if (!('x' in selection)) {
         return quit('Select element with position');
     }
-    const element = getFirstElementWithOffset(selection);
-    // console.log({
-    //   elementX: element.x,
-    //   elementY: element.y,
-    //   elementWidth: element.width,
-    //   elementHeight: element.height,
-    //   parentWidth: parent.width,
-    //   parentHeight: parent.height,
-    //   selection: selec,
-    // })
+    const { x, y } = getCoordsAgainstParent(selection, parent.id);
     const coords = mapToUvCoords({
-        elementX: element.x,
-        elementY: element.y,
+        elementX: x,
+        elementY: y,
         elementWidth: selection.width,
         elementHeight: selection.height,
         parentWidth: parent.width,
