@@ -1,0 +1,21 @@
+<textarea></textarea>
+
+<script>
+  function copyText(text) {
+    const textarea = document.querySelector('textarea')
+    textarea.value = text
+    textarea.select()
+    document.execCommand('copy')
+  }
+
+  onmessage = (event) => {
+    if (event.data.pluginMessage.text) {
+      copyText(event.data.pluginMessage.text)
+
+      parent.postMessage(
+        { pluginMessage: { quit: true, text: event.data.pluginMessage.text } },
+        '*'
+      )
+    }
+  }
+</script>

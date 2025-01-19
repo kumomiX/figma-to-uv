@@ -1,0 +1,1 @@
+Map figma element coords to UV coords (following WebGL spec)
